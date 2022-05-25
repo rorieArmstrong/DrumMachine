@@ -8,8 +8,10 @@ HEIGHT = 800
 black= (0,0,0)
 white = (255,255,255)
 grey = (128,128,128)
+grey_disabled = (220,220,220)
 dark_grey = (208,208,208)
 green = (0,255,0)
+green_disabled = (181,255,181)
 red = (255, 0 ,0)
 gold = (212,175,55)
 blue = (0, 255,255)
@@ -20,7 +22,7 @@ label_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
 sub_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
 
 
-#sounds
+#create sounds class
 class Sound:
     def __init__(self,name,sound):
         self.name = name
@@ -33,6 +35,7 @@ class Sound:
     def toggle_active(self):
         self.active = not self.active
 
+#Import sounds
 sounds = []
 sounds.append(Sound("Hi Hat", mixer.Sound('./sounds/hi hat.WAV')))
 sounds.append(Sound("Snare", mixer.Sound('./sounds/snare.WAV')))
@@ -64,26 +67,28 @@ def play_notes():
 def draw_grid(active,beat):
     left_box = pygame.draw.rect(screen ,grey , [0,0,200,HEIGHT-200],5)
     
-    colours = [grey, white, grey]
+    colours_label = [grey, white]
 
     x = 0
     boxes = []
 
     #Label for sounds
     for sound in sounds:
-        screen.blit(label_font.render(sound.name, True, white), (30,30+x))
+        screen.blit(label_font.render(sound.name, True, colours_label[sound.active]), (30,30+x))
         x+=(HEIGHT-200)//len(sounds)
         pygame.draw.line(screen, grey, (0,x),(200,x),5)
 
     border = 3
 
+    colours_active = [green_disabled, green]
+    colours_not_active = [grey_disabled,grey]
     #Draws grid of beats and sounds
     for i in range(beats):
         for j in range(len(sounds)):
             if active[i][j]:
-                rect = pygame.draw.rect(screen ,green ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
+                rect = pygame.draw.rect(screen , colours_active[sounds[j].active], [(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
             else:
-                rect = pygame.draw.rect(screen ,grey ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
+                rect = pygame.draw.rect(screen ,colours_not_active[sounds[j].active] ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
             pygame.draw.rect(screen ,gold ,[(i*((WIDTH-200)//beats)+200),(j*100),((WIDTH-200)//beats),((HEIGHT-200)//len(sounds))],5,5)
             boxes.append((rect,(i,j)))
 
@@ -128,6 +133,21 @@ while run:
     screen.blit(add_text, (820, HEIGHT-145))
     screen.blit(minus_text, (820, HEIGHT-95))
 
+    #Save
+    save_rect = pygame.draw.rect(screen ,grey , [900,HEIGHT - 150,200,48],5,5)
+    save_text = label_font.render('Save', True, white)
+    screen.blit(save_text, (920, HEIGHT-145))
+
+    #Load
+    load_rect = pygame.draw.rect(screen ,grey , [900,HEIGHT - 100,200,48],5,5)
+    load_text = label_font.render('Load', True, white)
+    screen.blit(load_text, (920, HEIGHT-95))
+
+    #Clear
+    clear_rect = pygame.draw.rect(screen ,red , [1150,HEIGHT - 150,200,100],0,5)
+    clear_text = label_font.render('Clear', True, white)
+    screen.blit(clear_text, (1170, HEIGHT-115))
+
     #Toggle sound
     x=0
     sound_toggles = []
@@ -163,10 +183,12 @@ while run:
             elif beats_minus_rect.collidepoint(event.pos):
                 beats -= 1
                 active.pop()
+            elif clear_rect.collidepoint(event.pos):
+                active = [[False for i in sounds] for j in range(beats)]
             for i in range(len(sounds)):
                 if sound_toggles[i].collidepoint(event.pos):
                     sounds[i].toggle_active()
-    
+            
     #Beat progession
     beat_legnth = 3600//bpm
 

@@ -1,10 +1,10 @@
 import pygame
 from pygame import mixer
 
+#Colours and Display settings
 pygame.init()
 WIDTH = 1400
 HEIGHT = 800
-
 black= (0,0,0)
 white = (255,255,255)
 grey = (128,128,128)
@@ -14,39 +14,53 @@ red = (255, 0 ,0)
 gold = (212,175,55)
 blue = (0, 255,255)
 
-
 screen = pygame.display.set_mode([WIDTH,HEIGHT])
 pygame.display.set_caption('BEAT MAKER')
 label_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
 sub_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
 
+
+#sounds
+class Sound:
+    def __init__(self,name,sound):
+        self.name = name
+        self.sound = sound
+        self.active = True
+
+    def play(self):
+        self.sound.play()
+
+    def toggle_active(self):
+        self.active = not self.active
+
+sounds = []
+sounds.append(Sound("Hi Hat", mixer.Sound('./sounds/hi hat.WAV')))
+sounds.append(Sound("Snare", mixer.Sound('./sounds/snare.WAV')))
+sounds.append(Sound("Crash", mixer.Sound('./sounds/crash.WAV')))
+sounds.append(Sound("Clap", mixer.Sound('./sounds/clap.WAV')))
+sounds.append(Sound("Kick", mixer.Sound('./sounds/kick.WAV')))
+sounds.append(Sound("Tom", mixer.Sound('./sounds/tom.WAV')))
+mixer.set_num_channels(len(sounds)*3)
+
+#Init variables
 fps = 60
 timer = pygame.time.Clock()
-drums = ['Hi Hat','Snare','Kick','Crash','Clap','Floor Tom']
-beats = 16
+beats = 8
 boxes = []
-active = [[False for i in drums] for j in range(beats)]
+active = [[False for i in sounds] for j in range(beats)]
 bpm = 168
 playing = False
 active_legnth = 0
 active_beat = 0
 beat_changed = True
 
-#sounds
-clap = mixer.Sound('./sounds/clap.WAV')
-crash = mixer.Sound('./sounds/crash.WAV')
-hi_hat = mixer.Sound('./sounds/hi hat.WAV')
-kick = mixer.Sound('./sounds/kick.WAV')
-snare = mixer.Sound('./sounds/snare.WAV')
-tom = mixer.Sound('./sounds/tom.WAV')
-sounds = [hi_hat,snare,kick,crash,clap,tom]
-mixer.set_num_channels(len(sounds)*3)
-
+#Play sounds
 def play_notes():
     for i in range(len(active[active_beat])):
-        if active[active_beat][i]:
+        if active[active_beat][i] and sounds[i].active:
             sounds[i].play()
 
+#Draws main grid
 def draw_grid(active,beat):
     left_box = pygame.draw.rect(screen ,grey , [0,0,200,HEIGHT-200],5)
     
@@ -55,25 +69,28 @@ def draw_grid(active,beat):
     x = 0
     boxes = []
 
-    for drum in drums:
-        screen.blit(label_font.render(drum, True, white), (30,30+x))
-        x+=(HEIGHT-200)//len(drums)
+    #Label for sounds
+    for sound in sounds:
+        screen.blit(label_font.render(sound.name, True, white), (30,30+x))
+        x+=(HEIGHT-200)//len(sounds)
         pygame.draw.line(screen, grey, (0,x),(200,x),5)
 
     border = 3
 
+    #Draws grid of beats and sounds
     for i in range(beats):
-        for j in range(len(drums)):
+        for j in range(len(sounds)):
             if active[i][j]:
-                rect = pygame.draw.rect(screen ,green ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(drums)-2*border)],0,3)
+                rect = pygame.draw.rect(screen ,green ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
             else:
-                rect = pygame.draw.rect(screen ,grey ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(drums)-2*border)],0,3)
-            pygame.draw.rect(screen ,gold ,[(i*((WIDTH-200)//beats)+200),(j*100),((WIDTH-200)//beats),((HEIGHT-200)//len(drums))],5,5)
+                rect = pygame.draw.rect(screen ,grey ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
+            pygame.draw.rect(screen ,gold ,[(i*((WIDTH-200)//beats)+200),(j*100),((WIDTH-200)//beats),((HEIGHT-200)//len(sounds))],5,5)
             boxes.append((rect,(i,j)))
 
         current = pygame.draw.rect(screen, blue, [beat*((WIDTH-200)//beats)+200, 0, ((WIDTH-200)//beats), HEIGHT-200],3,3)
     return boxes
 
+#Run Pygame
 run = True
 while run:
     timer.tick(fps)
@@ -111,10 +128,20 @@ while run:
     screen.blit(add_text, (820, HEIGHT-145))
     screen.blit(minus_text, (820, HEIGHT-95))
 
+    #Toggle sound
+    x=0
+    sound_toggles = []
+    for drum in sounds:
+        rect = pygame.rect.Rect((0,x),(200,(HEIGHT-200)//len(sounds)))
+        x+=(HEIGHT-200)//len(sounds)
+        sound_toggles.append(rect)
+
+    #Calls play note when progressed to next beat
     if beat_changed:
         play_notes()
         beat_changed = False
 
+    #Event handler
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -132,12 +159,16 @@ while run:
                 bpm -= 1
             elif beats_plus_rect.collidepoint(event.pos):
                 beats += 1
-                active.append([False for i in drums])
+                active.append([False for i in sounds])
             elif beats_minus_rect.collidepoint(event.pos):
                 beats -= 1
                 active.pop()
+            for i in range(len(sounds)):
+                if sound_toggles[i].collidepoint(event.pos):
+                    sounds[i].toggle_active()
     
-    beat_legnth = 3600 // bpm
+    #Beat progession
+    beat_legnth = 3600//bpm
 
     if playing:
         if active_legnth < beat_legnth:

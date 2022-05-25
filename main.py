@@ -25,9 +25,9 @@ timer = pygame.time.Clock()
 drums = ['Hi Hat','Snare','Kick','Crash','Clap','Floor Tom']
 beats = 16
 boxes = []
-active = [[False for i in range(beats)] for j in drums]
+active = [[False for i in drums] for j in range(beats)]
 bpm = 168
-playing = True
+playing = False
 active_legnth = 0
 active_beat = 0
 beat_changed = True
@@ -43,8 +43,8 @@ sounds = [hi_hat,snare,kick,crash,clap,tom]
 mixer.set_num_channels(len(sounds)*3)
 
 def play_notes():
-    for i in range(len(active)):
-        if active[i][active_beat]:
+    for i in range(len(active[active_beat])):
+        if active[active_beat][i]:
             sounds[i].play()
 
 def draw_grid(active,beat):
@@ -64,7 +64,7 @@ def draw_grid(active,beat):
 
     for i in range(beats):
         for j in range(len(drums)):
-            if active[j][i]:
+            if active[i][j]:
                 rect = pygame.draw.rect(screen ,green ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(drums)-2*border)],0,3)
             else:
                 rect = pygame.draw.rect(screen ,grey ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(drums)-2*border)],0,3)
@@ -82,12 +82,34 @@ while run:
 
     #Menu
     bottom_box = pygame.draw.rect(screen ,grey , [0,HEIGHT - 200,WIDTH,200],5)
-    play_pause = pygame.draw.rect(screen ,grey , [50,HEIGHT - 150,200,100],0,5)
+
+    #Play/Pause Button
+    play_pause = pygame.draw.rect(screen ,grey , [50,HEIGHT - 150,200,100],5,5)
     if playing:
         play_text =label_font.render('Pause', True, white)
     else:
         play_text =label_font.render('Play', True, white)
     screen.blit(play_text, (70, HEIGHT-115))
+
+    #BPM
+    bpm_rect = pygame.draw.rect(screen ,grey , [300,HEIGHT - 150,200,100],5,5)
+    bpm_text = label_font.render('BPM: '+str(bpm), True, white)
+    screen.blit(bpm_text, (320, HEIGHT-115))
+    bpm_plus_rect = pygame.draw.rect(screen ,green , [505,HEIGHT - 150,48,48],0,5)
+    bpm_minus_rect = pygame.draw.rect(screen ,red , [505,HEIGHT - 100,48,48],0,5)
+    add_text = sub_font.render('+', True, white)
+    minus_text = sub_font.render('-', True, white)
+    screen.blit(add_text, (520, HEIGHT-145))
+    screen.blit(minus_text, (520, HEIGHT-95))
+
+    #Beats
+    beats_rect = pygame.draw.rect(screen ,grey , [600,HEIGHT - 150,200,100],5,5)
+    beats_text = label_font.render('Beats: '+str(beats), True, white)
+    screen.blit(beats_text, (620, HEIGHT-115))
+    beats_plus_rect = pygame.draw.rect(screen ,green , [805,HEIGHT - 150,48,48],0,5)
+    beats_minus_rect = pygame.draw.rect(screen ,red , [805,HEIGHT - 100,48,48],0,5)
+    screen.blit(add_text, (820, HEIGHT-145))
+    screen.blit(minus_text, (820, HEIGHT-95))
 
     if beat_changed:
         play_notes()
@@ -100,10 +122,20 @@ while run:
             for box in boxes:
                 if box[0].collidepoint(event.pos):
                     coords = box[1]
-                    active[coords[1]][coords[0]] = not active[coords[1]][coords[0]]
+                    active[coords[0]][coords[1]] = not active[coords[0]][coords[1]]
         if event.type == pygame.MOUSEBUTTONUP:
             if play_pause.collidepoint(event.pos):
                 playing = not playing
+            elif bpm_plus_rect.collidepoint(event.pos):
+                bpm += 1
+            elif bpm_minus_rect.collidepoint(event.pos):
+                bpm -= 1
+            elif beats_plus_rect.collidepoint(event.pos):
+                beats += 1
+                active.append([False for i in drums])
+            elif beats_minus_rect.collidepoint(event.pos):
+                beats -= 1
+                active.pop()
     
     beat_legnth = 3600 // bpm
 

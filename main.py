@@ -1,6 +1,12 @@
 import pygame
 from pygame import mixer
 
+#get history
+saved_beats =[]
+file = open('./history.txt','r')
+for line in file:
+    saved_beats.append(line)
+
 #Colours and Display settings
 pygame.init()
 WIDTH = 1400
@@ -56,6 +62,30 @@ playing = False
 active_legnth = 0
 active_beat = 0
 beat_changed = True
+save_menu = False
+load_menu = False
+beat_name, typing = '', False
+
+#Save menu
+def draw_save_menu(beat_name, typing):
+    pygame.draw.rect(screen, black , [0,0,WIDTH,HEIGHT])
+    save_menu_text = label_font.render('SAVE MENU: Enter a name for your file.', True, white)
+    screen.blit(save_menu_text, (400, 40))
+    save_file_button = pygame.draw.rect(screen, grey, [WIDTH//2-200, HEIGHT*0.75, 400,90],0,5)
+    save_file_text = label_font.render('Save', True, white)
+    screen.blit(save_file_text, (WIDTH//2-80, HEIGHT*0.75+30))
+    exit_text = label_font.render('Close', True, white)
+    exit_button = pygame.draw.rect(screen, grey, [WIDTH-200, 50, 180,90],0,5)
+    screen.blit(exit_text, (WIDTH-180, 70))
+    return exit_button
+   
+#Load menu
+def draw_load_menu():
+    pygame.draw.rect(screen, black , [0,0,WIDTH,HEIGHT])
+    exit_button = pygame.draw.rect(screen, grey, [WIDTH-200, 50, 180,90],0,5)
+    exit_text = label_font.render('Close', True, white)
+    screen.blit(exit_text, (WIDTH-180, 70))
+    return exit_button
 
 #Play sounds
 def play_notes():
@@ -101,6 +131,7 @@ while run:
     timer.tick(fps)
     screen.fill(black)
     boxes = draw_grid(active,active_beat)
+
 
     #Menu
     bottom_box = pygame.draw.rect(screen ,grey , [0,HEIGHT - 200,WIDTH,200],5)
@@ -148,10 +179,18 @@ while run:
     clear_text = label_font.render('Clear', True, white)
     screen.blit(clear_text, (1170, HEIGHT-115))
 
+    #Save Menu
+    if save_menu:
+        exit_button = draw_save_menu()
+
+    #Load Menu
+    if load_menu:
+        exit_button = draw_load_menu()
+
     #Toggle sound
     x=0
     sound_toggles = []
-    for drum in sounds:
+    for sound in sounds:
         rect = pygame.rect.Rect((0,x),(200,(HEIGHT-200)//len(sounds)))
         x+=(HEIGHT-200)//len(sounds)
         sound_toggles.append(rect)
@@ -165,12 +204,12 @@ while run:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and not save_menu and not load_menu:
             for box in boxes:
                 if box[0].collidepoint(event.pos):
                     coords = box[1]
                     active[coords[0]][coords[1]] = not active[coords[0]][coords[1]]
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.MOUSEBUTTONUP and not save_menu and not load_menu:
             if play_pause.collidepoint(event.pos):
                 playing = not playing
             elif bpm_plus_rect.collidepoint(event.pos):
@@ -185,10 +224,21 @@ while run:
                 active.pop()
             elif clear_rect.collidepoint(event.pos):
                 active = [[False for i in sounds] for j in range(beats)]
+            elif save_rect.collidepoint(event.pos):
+                save_menu = True
+                playing = False
+            elif load_rect.collidepoint(event.pos):
+                load_menu = True
+                playing = False
             for i in range(len(sounds)):
                 if sound_toggles[i].collidepoint(event.pos):
                     sounds[i].toggle_active()
-            
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if exit_button.collidepoint(event.pos):
+                save_menu = False
+                load_menu = False
+
+    
     #Beat progession
     beat_legnth = 3600//bpm
 

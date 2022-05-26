@@ -1,5 +1,6 @@
 import pygame
 from pygame import mixer
+from os import walk
 
 #get history
 saved_beats =[]
@@ -11,6 +12,7 @@ for line in file:
 pygame.init()
 WIDTH = 1400
 HEIGHT = 800
+drum_kit = 'kit2'
 black= (0,0,0)
 white = (255,255,255)
 grey = (128,128,128)
@@ -43,12 +45,9 @@ class Sound:
 
 #Import sounds
 sounds = []
-sounds.append(Sound("Hi Hat", mixer.Sound('./sounds/hi hat.WAV')))
-sounds.append(Sound("Snare", mixer.Sound('./sounds/snare.WAV')))
-sounds.append(Sound("Crash", mixer.Sound('./sounds/crash.WAV')))
-sounds.append(Sound("Clap", mixer.Sound('./sounds/clap.WAV')))
-sounds.append(Sound("Kick", mixer.Sound('./sounds/kick.WAV')))
-sounds.append(Sound("Tom", mixer.Sound('./sounds/tom.WAV')))
+for (dirpath, dirnames, filenames) in walk('./sounds/'+ drum_kit):
+    for sound in filenames:
+        sounds.append(Sound(sound[:-4], mixer.Sound('./sounds/'+ drum_kit +'/' + sound)))
 mixer.set_num_channels(len(sounds)*3)
 
 #Init variables
@@ -57,7 +56,7 @@ timer = pygame.time.Clock()
 beats = 8
 boxes = []
 active = [[False for i in sounds] for j in range(beats)]
-bpm = 168
+bpm = 128
 playing = False
 active_legnth = 0
 active_beat = 0
@@ -88,11 +87,21 @@ def draw_save_menu(beat_name, typing):
    
 #Load menu
 def draw_load_menu():
+    #Cover Screen
     pygame.draw.rect(screen, black , [0,0,WIDTH,HEIGHT])
+    save_menu_text = label_font.render('LOAD MENU: Select a beat to load.', True, white)
+    screen.blit(save_menu_text, (400, 40))
+    #Load Button
+    load_file_button = pygame.draw.rect(screen, grey, [WIDTH//2-200, HEIGHT*0.75, 400,90],0,5)
+    load_file_text = label_font.render('Load', True, white)
+    screen.blit(load_file_text, (WIDTH//2-40, HEIGHT*0.75+30))
+    #Exit button
     exit_button = pygame.draw.rect(screen, grey, [WIDTH-200, 50, 180,90],0,5)
     exit_text = label_font.render('Close', True, white)
     screen.blit(exit_text, (WIDTH-180, 70))
-    return exit_button
+    #Files
+    files_rect = pygame.draw.rect(screen, grey, [190,200,1000,HEIGHT*0.75-200], 5,5)
+    return exit_button, load_file_button , files_rect
 
 #Play sounds
 def play_notes():
@@ -192,7 +201,7 @@ while run:
 
     #Load Menu
     if load_menu:
-        exit_button = draw_load_menu()
+        exit_button, load_file_button, files_rect = draw_load_menu()
 
     #Toggle sound
     x=0

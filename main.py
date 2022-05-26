@@ -24,7 +24,7 @@ red = (255, 0 ,0)
 gold = (212,175,55)
 blue = (0, 255,255)
 
-drum_kit = 'kit1'
+drum_kit = 'kit3'
 screen = pygame.display.set_mode([WIDTH,HEIGHT])
 pygame.display.set_caption('BEAT MAKER')
 label_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
@@ -122,7 +122,7 @@ def draw_load_menu(index):
         if 0 <= index < len(saved_beats) and x == index:
             loaded_beats = int(beat[beat.index(', beats:')+8:beat.index(', bpm:')])
             loaded_bpm = int(beat[beat.index(', bpm:')+6:beat.index(', selected:')])
-            active_sting = beat[beat.index(', selected:')+14:beat.index(', drumkit:')-2]
+            active_sting = beat[beat.index(', selected:')+13:beat.index(', drumkit:')-2]
             active_list = [i.split(', ') for i in active_sting.split('], [')]
             for i in range(len(active_list)):
                 for j in range(len(active_list[0])):
@@ -130,7 +130,7 @@ def draw_load_menu(index):
                         active_list[i][j] = True
                     else:
                         active_list[i][j] = False
-            loaded_drumkit = beat[beat.index(', drumkit:')+10:]
+            loaded_drumkit = beat[beat.index(', drumkit:')+10:].strip('\n')
             loaded_data = [loaded_beats, loaded_bpm, active_list, loaded_drumkit]
     return exit_button, delete_file_button, load_file_button, files_rect, loaded_data
 
@@ -293,6 +293,11 @@ while run:
                 save_menu = False
                 typing = False
                 beat_name = ''
+            elif exit_button.collidepoint(event.pos):
+                save_menu = False
+                load_menu = False
+                typing = False
+                beat_name = ''
         elif event.type == pygame.MOUSEBUTTONUP:
             if exit_button.collidepoint(event.pos):
                 save_menu = False
@@ -300,9 +305,10 @@ while run:
                 typing = False
                 beat_name = ''
             if files_rect.collidepoint(event.pos):
-                index = (event.pos[1]-200)//50
+                index = max((event.pos[1]-200)//50,0)
             if load_file_button.collidepoint(event.pos):
                 [beats, bpm, active, drum_kit] = loaded_data
+                print( index, loaded_data)
                 sounds = get_sounds(drum_kit)
                 active_beat = 0 
                 load_menu = False

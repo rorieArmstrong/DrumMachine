@@ -1,3 +1,4 @@
+from marshal import load
 import pygame
 from pygame import mixer
 from os import walk
@@ -12,7 +13,6 @@ for line in file:
 pygame.init()
 WIDTH = 1400
 HEIGHT = 800
-drum_kit = 'kit2'
 black= (0,0,0)
 white = (255,255,255)
 grey = (128,128,128)
@@ -24,10 +24,12 @@ red = (255, 0 ,0)
 gold = (212,175,55)
 blue = (0, 255,255)
 
+drum_kit = 'kit1'
 screen = pygame.display.set_mode([WIDTH,HEIGHT])
 pygame.display.set_caption('BEAT MAKER')
 label_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
-sub_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 32)
+sub_font = pygame.font.Font('./fonts/Roboto-Bold.ttf', 21)
+index = 100
 
 
 #create sounds class
@@ -44,11 +46,14 @@ class Sound:
         self.active = not self.active
 
 #Import sounds
-sounds = []
-for (dirpath, dirnames, filenames) in walk('./sounds/'+ drum_kit):
-    for sound in filenames:
-        sounds.append(Sound(sound[:-4], mixer.Sound('./sounds/'+ drum_kit +'/' + sound)))
-mixer.set_num_channels(len(sounds)*3)
+def get_sounds(drum_kit):
+    sounds = []
+    for (dirpath, dirnames, filenames) in walk('./sounds/'+ drum_kit):
+        for sound in filenames:
+            sounds.append(Sound(sound[:-4], mixer.Sound('./sounds/'+ drum_kit +'/' + sound)))
+    mixer.set_num_channels(len(sounds)*3)
+    return sounds
+sounds = get_sounds(drum_kit)
 
 #Init variables
 fps = 60
@@ -86,22 +91,49 @@ def draw_save_menu(beat_name, typing):
     return exit_button, save_file_button, text_box
    
 #Load menu
-def draw_load_menu():
+def draw_load_menu(index):
     #Cover Screen
     pygame.draw.rect(screen, black , [0,0,WIDTH,HEIGHT])
     save_menu_text = label_font.render('LOAD MENU: Select a beat to load.', True, white)
     screen.blit(save_menu_text, (400, 40))
     #Load Button
-    load_file_button = pygame.draw.rect(screen, grey, [WIDTH//2-200, HEIGHT*0.75, 400,90],0,5)
+    load_file_button = pygame.draw.rect(screen, grey, [WIDTH//2-400, HEIGHT*0.75, 400,90],0,5)
     load_file_text = label_font.render('Load', True, white)
-    screen.blit(load_file_text, (WIDTH//2-40, HEIGHT*0.75+30))
+    screen.blit(load_file_text, (WIDTH//2-240, HEIGHT*0.75+30))
+    #Delete Button
+    delete_file_button = pygame.draw.rect(screen, red, [WIDTH//2, HEIGHT*0.75, 400,90],0,5)
+    delete_file_text = label_font.render('Delete', True, white)
+    screen.blit(delete_file_text, (WIDTH//2+160, HEIGHT*0.75+30))
     #Exit button
     exit_button = pygame.draw.rect(screen, grey, [WIDTH-200, 50, 180,90],0,5)
     exit_text = label_font.render('Close', True, white)
     screen.blit(exit_text, (WIDTH-180, 70))
     #Files
     files_rect = pygame.draw.rect(screen, grey, [190,200,1000,HEIGHT*0.75-200], 5,5)
-    return exit_button, load_file_button , files_rect
+    if 0 <= index < len(saved_beats):
+        pygame.draw.rect(screen, grey, [190,200+index*(HEIGHT*0.75-200)//10,1000,(HEIGHT*0.75-200)/10], 0,5)
+
+    loaded_data = []
+    for x in range(0,min(10,len(saved_beats))):
+        beat = saved_beats[x]
+        name_of_beat = beat[beat.index('name: ')+6:beat.index(', beats:')]
+        row_text = sub_font.render(name_of_beat, True, white)
+        screen.blit(row_text, (200, 210 + (HEIGHT*0.75-200)//10*x))
+        if 0 <= index < len(saved_beats) and x == index:
+            loaded_beats = int(beat[beat.index(', beats:')+8:beat.index(', bpm:')])
+            loaded_bpm = int(beat[beat.index(', bpm:')+6:beat.index(', selected:')])
+            active_sting = beat[beat.index(', selected:')+14:beat.index(', drumkit:')-2]
+            active_list = [i.split(', ') for i in active_sting.split('], [')]
+            for i in range(len(active_list)):
+                for j in range(len(active_list[0])):
+                    if active_list[i][j] == 'True':
+                        active_list[i][j] = True
+                    else:
+                        active_list[i][j] = False
+            loaded_drumkit = beat[beat.index(', drumkit:')+10:]
+            loaded_data = [loaded_beats, loaded_bpm, active_list, loaded_drumkit]
+    return exit_button, delete_file_button, load_file_button, files_rect, loaded_data
+
 
 #Play sounds
 def play_notes():
@@ -120,7 +152,7 @@ def draw_grid(active,beat):
 
     #Label for sounds
     for sound in sounds:
-        screen.blit(label_font.render(sound.name, True, colours_label[sound.active]), (30,30+x))
+        screen.blit(sub_font.render(sound.name, True, colours_label[sound.active]), (10,30+x))
         x+=(HEIGHT-200)//len(sounds)
         pygame.draw.line(screen, grey, (0,x),(200,x),5)
 
@@ -132,10 +164,10 @@ def draw_grid(active,beat):
     for i in range(beats):
         for j in range(len(sounds)):
             if active[i][j]:
-                rect = pygame.draw.rect(screen , colours_active[sounds[j].active], [(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
+                rect = pygame.draw.rect(screen , colours_active[sounds[j].active], [(i*((WIDTH-200)//beats)+200)+border,j*(HEIGHT-200)//len(sounds)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
             else:
-                rect = pygame.draw.rect(screen ,colours_not_active[sounds[j].active] ,[(i*((WIDTH-200)//beats)+200)+border,(j*100)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
-            pygame.draw.rect(screen ,gold ,[(i*((WIDTH-200)//beats)+200),(j*100),((WIDTH-200)//beats),((HEIGHT-200)//len(sounds))],5,5)
+                rect = pygame.draw.rect(screen ,colours_not_active[sounds[j].active] ,[(i*((WIDTH-200)//beats)+200)+border,j*(HEIGHT-200)//len(sounds)+border,((WIDTH-200)//beats)-2*border,((HEIGHT-200)//len(sounds)-2*border)],0,3)
+            pygame.draw.rect(screen ,gold ,[(i*((WIDTH-200)//beats)+200),(j*(HEIGHT-200)//len(sounds)),((WIDTH-200)//beats),((HEIGHT-200)//len(sounds))],5,5)
             boxes.append((rect,(i,j)))
 
         current = pygame.draw.rect(screen, blue, [beat*((WIDTH-200)//beats)+200, 0, ((WIDTH-200)//beats), HEIGHT-200],3,3)
@@ -166,8 +198,8 @@ while run:
     screen.blit(bpm_text, (320, HEIGHT-115))
     bpm_plus_rect = pygame.draw.rect(screen ,green , [505,HEIGHT - 150,48,48],0,5)
     bpm_minus_rect = pygame.draw.rect(screen ,red , [505,HEIGHT - 100,48,48],0,5)
-    add_text = sub_font.render('+', True, white)
-    minus_text = sub_font.render('-', True, white)
+    add_text = label_font.render('+', True, white)
+    minus_text = label_font.render('-', True, white)
     screen.blit(add_text, (520, HEIGHT-145))
     screen.blit(minus_text, (520, HEIGHT-95))
 
@@ -201,7 +233,7 @@ while run:
 
     #Load Menu
     if load_menu:
-        exit_button, load_file_button, files_rect = draw_load_menu()
+        exit_button, delete_file_button, load_file_button, files_rect, loaded_data = draw_load_menu(index)
 
     #Toggle sound
     x=0
@@ -249,23 +281,37 @@ while run:
             for i in range(len(sounds)):
                 if sound_toggles[i].collidepoint(event.pos):
                     sounds[i].toggle_active()
-        elif event.type == pygame.MOUSEBUTTONUP:
-            if exit_button.collidepoint(event.pos):
-                save_menu = False
-                load_menu = False
-                typing = False
-                beat_name = ''
-            elif text_box.collidepoint(event.pos):
+        elif event.type == pygame.MOUSEBUTTONUP and not load_menu:
+            if text_box.collidepoint(event.pos):
                 typing = True
             elif save_file_button.collidepoint(event.pos):
                 file = open('history.txt' , 'w')
-                saved_beats.append(f'\nname: {beat_name}, beats: {beats} bpm: {bpm}, selected:{active}')
+                saved_beats.append(f'\nname: {beat_name}, beats: {beats}, bpm: {bpm}, selected:{active}, drumkit:{drum_kit}')
                 for beat in saved_beats:
                     file.write(str(beat))
                 file.close()
                 save_menu = False
                 typing = False
                 beat_name = ''
+        elif event.type == pygame.MOUSEBUTTONUP:
+            if exit_button.collidepoint(event.pos):
+                save_menu = False
+                load_menu = False
+                typing = False
+                beat_name = ''
+            if files_rect.collidepoint(event.pos):
+                index = (event.pos[1]-200)//50
+            if load_file_button.collidepoint(event.pos):
+                [beats, bpm, active, drum_kit] = loaded_data
+                sounds = get_sounds(drum_kit)
+                active_beat = 0 
+                load_menu = False
+            if delete_file_button.collidepoint(event.pos) and len(saved_beats):
+                saved_beats.pop(index)
+                file = open('history.txt' , 'w')
+                for beat in saved_beats:
+                    file.write(str(beat))
+                file.close()
         if event.type == pygame.TEXTINPUT and typing:
             beat_name += event.text
         if event.type == pygame.KEYDOWN:

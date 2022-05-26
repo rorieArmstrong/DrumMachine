@@ -68,16 +68,23 @@ beat_name, typing = '', False
 
 #Save menu
 def draw_save_menu(beat_name, typing):
+    #Cover Screen
     pygame.draw.rect(screen, black , [0,0,WIDTH,HEIGHT])
     save_menu_text = label_font.render('SAVE MENU: Enter a name for your file.', True, white)
     screen.blit(save_menu_text, (400, 40))
+    #Save Button
     save_file_button = pygame.draw.rect(screen, grey, [WIDTH//2-200, HEIGHT*0.75, 400,90],0,5)
     save_file_text = label_font.render('Save', True, white)
-    screen.blit(save_file_text, (WIDTH//2-80, HEIGHT*0.75+30))
+    screen.blit(save_file_text, (WIDTH//2-40, HEIGHT*0.75+30))
+    #Text Box
+    text_box = pygame.draw.rect(screen, grey , [400,200,600,200],5,5)
+    entry_text = label_font.render(beat_name, True, white)
+    screen.blit(entry_text,(430,250))
+    #Exit Button
     exit_text = label_font.render('Close', True, white)
     exit_button = pygame.draw.rect(screen, grey, [WIDTH-200, 50, 180,90],0,5)
     screen.blit(exit_text, (WIDTH-180, 70))
-    return exit_button
+    return exit_button, save_file_button, text_box
    
 #Load menu
 def draw_load_menu():
@@ -164,12 +171,12 @@ while run:
     screen.blit(add_text, (820, HEIGHT-145))
     screen.blit(minus_text, (820, HEIGHT-95))
 
-    #Save
+    #Save Menu button
     save_rect = pygame.draw.rect(screen ,grey , [900,HEIGHT - 150,200,48],5,5)
     save_text = label_font.render('Save', True, white)
     screen.blit(save_text, (920, HEIGHT-145))
 
-    #Load
+    #Load Menu button
     load_rect = pygame.draw.rect(screen ,grey , [900,HEIGHT - 100,200,48],5,5)
     load_text = label_font.render('Load', True, white)
     screen.blit(load_text, (920, HEIGHT-95))
@@ -181,7 +188,7 @@ while run:
 
     #Save Menu
     if save_menu:
-        exit_button = draw_save_menu()
+        exit_button, save_file_button, text_box = draw_save_menu(beat_name, typing)
 
     #Load Menu
     if load_menu:
@@ -237,6 +244,25 @@ while run:
             if exit_button.collidepoint(event.pos):
                 save_menu = False
                 load_menu = False
+                typing = False
+                beat_name = ''
+            elif text_box.collidepoint(event.pos):
+                typing = True
+            elif save_file_button.collidepoint(event.pos):
+                file = open('history.txt' , 'w')
+                saved_beats.append(f'\nname: {beat_name}, beats: {beats} bpm: {bpm}, selected:{active}')
+                for beat in saved_beats:
+                    file.write(str(beat))
+                file.close()
+                save_menu = False
+                typing = False
+                beat_name = ''
+        if event.type == pygame.TEXTINPUT and typing:
+            beat_name += event.text
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE and len(beat_name):
+                beat_name = beat_name[:-1]
+        
 
     
     #Beat progession
